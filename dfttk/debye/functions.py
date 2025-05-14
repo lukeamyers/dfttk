@@ -18,6 +18,7 @@ from dfttk.plotly_format import plot_format
 # A = 231.0389521318254 K/(Å*GPa/u)^1/2
 A = 231.0389521318254
 BOLTZMANN_CONSTANT = constants.physical_constants["Boltzmann constant in eV/K"][0]
+BERN = bernoulli(100)
 
 
 def gruneisen_parameter(bulk_modulus_prime: float, gruneisen_x: float) -> float:
@@ -63,8 +64,7 @@ def debye_temperature(
 
 
 def debye_function(
-    x_array: np.array, prec: float = 1e-12, nth_bernoulli: int = 100
-) -> np.array:
+    x_array: np.array, prec: float = 1e-12) -> np.array:
     r"""Calculates the debye function with n = 3 using one of two series expansions. Valid for |x|<2𝜋 and n≥1.
 
     For -2pi < x < 0.7𝜋:
@@ -81,14 +81,12 @@ def debye_function(
     Args:
         x_array: array of input values for the debye function
         prec: Precision. Terminates the series expansion when the absolute value of the term is less than prec.
-        nth_bernoulli: Determines the nth Bernoulli number to calculate. A list of Bernoulli numbers is generated prior to calculating the series
-        expansion. There should be no reason to change this value under normal circumstances.
 
     Raises:
         ValueError: If the precision is not between 0 and 1
         ValueError: If x < -2𝜋
         IndexError: If the bernoulli number at index 2k is not available. This indicates slow convergence of the Debye function series expansion.
-        If you wish to calculate values for x < -𝜋, convergence may be slow and you may need to increase nth_bernoulli.
+        If you wish to calculate values for x < -𝜋, convergence may be slow.
 
     Returns:
         np.array: The value of the debye function evaluated at each x in x_array
@@ -98,7 +96,6 @@ def debye_function(
         raise ValueError("The precision must be between 0 and 1")
 
     result = np.zeros_like(x_array)
-    bern_list = bernoulli(nth_bernoulli)  # 2*k must be less than 100
 
     for i, x in enumerate(x_array):
         term = 1  # Ensures the while loop runs at least once
@@ -122,14 +119,14 @@ def debye_function(
             while abs(term) > prec:
                 try:
                     term = 3 * (
-                        bern_list[2 * k]
+                        BERN[2 * k]
                         / ((2 * k + 3) * gamma(2 * k + 1))
                         * x ** (2 * k)
                     )
                 except IndexError:
                     raise IndexError(
                         f"IndexError: the bernoulli number at index {2*k} is not available. This indicates slow convergence of the Debye function series expansion. \
-                            If you wish to calculate values for x < -𝜋, convergence may be slow and you may need to increase nth_bernoulli."
+                            If you wish to calculate values for x < -𝜋, convergence may be slow."
                     )
                 debye_value += term
                 k += 1
